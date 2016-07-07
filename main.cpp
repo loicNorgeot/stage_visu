@@ -87,7 +87,8 @@ public:
   glm::mat4 VIEW, PROJ;
   glm::vec3 cam, look, up;
   void update(){
-    cam  = zoom * glm::normalize(cam);
+    //cam  = zoom * glm::normalize(cam);
+    cam  = zoom * cam;
     VIEW = glm::lookAt(cam, look, up);
     PROJ = glm::perspective(glm::radians(fov), (float)w / (float)h, zmin, zmax);
   }
@@ -169,56 +170,34 @@ int lastState = GLFW_RELEASE;
 int rayon = 15;
 bool add = true;
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos){
-
-    //}
     // If left button is pressed, compute the intersection of the mouse and the object
     if ( GLFW_PRESS == glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) && glm::distance(glm::vec2(xpos,ypos), glm::vec2(lastX, lastY)) > 20){
-        lastX = xpos;
-        lastY = ypos;
-      int indice = -1;
+          lastX = xpos;
+          lastY = ypos;
+          int indice = -1;
 
-      // Does the ray intersects? If so, indice is the index of the triangle intersected.
-      bool intersects = intersectsWithTriangle(myContext, myObject, xpos, ypos, indice);
+          // Does the ray intersects? If so, indice is the index of the triangle intersected.
+          bool intersects = intersectsWithTriangle(myContext, myObject, xpos, ypos, indice);
 
-      // If intersection, paint everything white except the concerned triangle
-      if(intersects){
+          // If intersection, paint everything white except the concerned triangle
+          if(intersects){
+            //New version
+            std::vector<int> neigh = myObject->getNeighbours(indice, rayon);
+            glm::vec3 color = add ? glm::vec3(1, 0.5, 0) : glm::vec3(1, 1, 1);
+            for(int k; k < neigh.size(); k++){
+                myObject->colors[ myObject->triangles[neigh[k] + 0]] = color;
+                myObject->colors[ myObject->triangles[neigh[k] + 1]] = color;
+                myObject->colors[ myObject->triangles[neigh[k] + 2]] = color;
+            }
 
-      /* Old version
-        for(int i = 0 ; i < myObject->colors.size() ; i++)
-          myObject->colors[ i ] = glm::vec3(1);
-        myObject->colors[ myObject->triangles[indice] ] = glm::vec3(1,0.5,0);
-        myObject->colors[ myObject->triangles[indice+1] ] = glm::vec3(1,0.5,0);
-        myObject->colors[ myObject->triangles[indice+2] ] = glm::vec3(1,0.5,0);
-
-        //for(int k; k < myObject->neighbours[indice/3].size(); k++){
-        for(int k; k < myObject->neighbours[indice/3].size(); k++){
-            myObject->colors[ myObject->triangles[myObject->neighbours[indice/3][k]] ] = glm::vec3(1, 0.5, 0);
-            myObject->colors[ myObject->triangles[myObject->neighbours[indice/3][k]+ 1]] = glm::vec3(1, 0.5, 0);
-            myObject->colors[ myObject->triangles[myObject->neighbours[indice/3][k]+ 2]] = glm::vec3(1, 0.5, 0);
-        }
-        */
-
-        //New version
-        std::vector<int> neigh = myObject->getNeighbours(indice, rayon);
-        //for(int n : neigh){
-        //    std::cout << n << " ";
-        //}
-        //std::cout << std::endl;
-        glm::vec3 color = add ? glm::vec3(1, 0.5, 0) : glm::vec3(1, 1, 1);
-        for(int k; k < neigh.size(); k++){
-            myObject->colors[ myObject->triangles[neigh[k] + 0]] = color;
-            myObject->colors[ myObject->triangles[neigh[k] + 1]] = color;
-            myObject->colors[ myObject->triangles[neigh[k] + 2]] = color;
-        }
-
-        updateBuffer( myObject->cBuffer, &myObject->colors);
-      }
-      // Else, paint everything white
-      else{
-        for(int i = 0 ; i < myObject->colors.size() ; i++)
-          myObject->colors[ i ] = glm::vec3(1);
-        updateBuffer( myObject->cBuffer, &myObject->colors);
-      }
+            updateBuffer( myObject->cBuffer, &myObject->colors);
+          }
+          // Else, paint everything white
+          else{
+            for(int i = 0 ; i < myObject->colors.size() ; i++)
+              myObject->colors[ i ] = glm::vec3(1);
+            updateBuffer( myObject->cBuffer, &myObject->colors);
+          }
     }
 }
 void window_size_callback(GLFWwindow* window, int width, int height){
@@ -383,38 +362,14 @@ int main(int argc, char** argv){
     send(ID, 0, "picking");
     send(ID, 0,"clipping");
 
+    myObject->MODEL = glm::rotate(0.001f, myContext->up) * myObject->MODEL;
+    glm::vec3 right = glm::cross(myContext->look, myContext->up);
+
     // Bind the buffers to prepare drawing
     glBindVertexArray(myObject->VAO);
     bindBuffer(GL_ARRAY_BUFFER, myObject->cBuffer, ID, 2, "vertex_color");
     // DRAW THE OBJECT !!!!!
     glDrawElements(GL_TRIANGLES, myObject->triangles.size(), GL_UNSIGNED_INT, (void*)0);
-
-    /*
-    // If left button is pressed, compute the intersection of the mouse and the object
-    if ( GLFW_PRESS == glfwGetMouseButton(w, GLFW_MOUSE_BUTTON_1) ){
-      int indice = -1;
-      double x,y;
-      glfwGetCursorPos( w, &x, &y);
-      // Does the ray intersects? If so, indice is the index of the triangle intersected.
-      bool intersects = intersectsWithTriangle(myContext, myObject, x, y, indice);
-
-      // If intersection, paint everything white except the concerned triangle
-      if(intersects){
-        for(int i = 0 ; i < myObject->colors.size() ; i++)
-          myObject->colors[ i ] = glm::vec3(1);
-        myObject->colors[ myObject->triangles[indice] ] = glm::vec3(1,0.5,0);
-        myObject->colors[ myObject->triangles[indice+1] ] = glm::vec3(1,0.5,0);
-        myObject->colors[ myObject->triangles[indice+2] ] = glm::vec3(1,0.5,0);
-        updateBuffer( myObject->cBuffer, &myObject->colors);
-      }
-      // Else, paint everything white
-      else{
-        for(int i = 0 ; i < myObject->colors.size() ; i++)
-          myObject->colors[ i ] = glm::vec3(1);
-        updateBuffer( myObject->cBuffer, &myObject->colors);
-      }
-    }
-    */
 
     //Print the radius
     gui->text(std::to_string(rayon), 20.0f, 20.0f, 1, glm::vec3(1,0,0));
