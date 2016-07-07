@@ -577,6 +577,7 @@ GLuint loadProgram(std::string vertex_file_path, std::string fragment_file_path,
   return progID;
 }
 
+
 GUI::GUI(std::string vertPath, std::string fragPath, std::string font){
   fontID = loadProgram(vertPath, fragPath, "");
   glUseProgram(fontID);
@@ -729,7 +730,6 @@ void Object::read(char * mesh_path){
     std::cout << "Succesfully opened  " << mesh_path << std::endl;
     GmfCloseMesh(inm);
   }
-
 void Object::createNeighbours(){
 
     int nbh = 0; // Pour parcourir les lignes de neighbours;
@@ -760,20 +760,6 @@ void Object::createNeighbours(){
         neighbours.push_back(tmp);
     }
 }
-
-/* Version de Jovana
-std::vector<int> Object::getNeighbours(int ind, int level){
-//En supposant que ind c'est l'indice obtenu de interesect
-
-    std::vector<int> voisins;
-    if (level<=0) return voisins;
-    int h;
-    neighbours[ind/3][]
-
-    std::set<int> s(tmp.begin(), tmp.end());
-}
-*/
-
 std::vector<int> Object::getNeighbours(int ind, int level){
     // Level = 0  - Uniquement l'indice sélectionné
     // Level = 1  - Les premiers voisins de ind
